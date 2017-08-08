@@ -1,6 +1,8 @@
 package com.jaison.vertxdemo;
 
 import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Future;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -12,11 +14,16 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import java.nio.file.NoSuchFileException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class ProductVerticle extends AbstractVerticle {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ProductVerticle.class);
+
+  //TODO: move this to config rather than constant
+  private static final String DATA_DIR = "./data/";
 
   @Override
   public void start() {
@@ -32,7 +39,7 @@ public class ProductVerticle extends AbstractVerticle {
     vertx.createHttpServer().requestHandler(router::accept).listen(8080);
     LOGGER.info("ProductVerticle Deployed");
   }
-  
+
 
   private void handleAddProduct(RoutingContext routingContext) {
     HttpServerResponse response = routingContext.response();
@@ -50,8 +57,8 @@ public class ProductVerticle extends AbstractVerticle {
     String id = UUID.randomUUID().toString();
     product.put("id",id);
 
-    Buffer buffer = Buffer.buffer(product.encodePrettily());
-    vertx.fileSystem().writeFile("./data/"+id+".json", buffer,
+    Buffer buffer = Buffer.buffer(product.encode());
+    vertx.fileSystem().writeFile(getFilePath(id), buffer,
         result -> {
           if(result.succeeded()) {
             response.putHeader("content-type", "application/json").end(product.encodePrettily());
@@ -66,7 +73,7 @@ public class ProductVerticle extends AbstractVerticle {
     String productId = routingContext.request().getParam("productId");
     HttpServerResponse response = routingContext.response();
 
-    vertx.fileSystem().readFile("./data/"+productId+".json",
+    vertx.fileSystem().readFile(getFilePath(productId),
         result -> {
           if(result.succeeded()) {
             response.putHeader("content-type", "application/json").end(result.result());
@@ -80,13 +87,29 @@ public class ProductVerticle extends AbstractVerticle {
   }
 
   private void handleListProducts(RoutingContext routingContext) {
-    JsonArray arr = new JsonArray();
+    JsonArray jsonArray = new JsonArray();
     HttpServerResponse response = routingContext.response();
 
-    vertx.fileSystem().readDir("./data/",
+    // TODO: introduce RxJava and Observable to avoid callbackhell
+    vertx.fileSystem().readDir(DATA_DIR,
         result -> {
           if(result.succeeded()) {
-            response.putHeader("content-type", "application/json").end(result.result().get(0));
+            List<Future> futures = new ArrayList<>();
+            result.result().forEach(filePath->
+            {
+              Future fileFuture = Future.future();
+              futures.add(fileFuture);
+              vertx.fileSystem().readFile(filePath,fileResult -> {
+                if(fileResult.succeeded()) {
+                  jsonArray.add(new JsonObject(fileResult.result()));
+                }
+                fileFuture.complete();
+              });
+            });
+            CompositeFuture compositeFuture = CompositeFuture.all(futures).setHandler(fileFutureResult->{
+              response.putHeader("content-type", "application/json").end(jsonArray.encodePrettily());
+            });
+
           } else {
             LOGGER.error("Failed to Look up all products", result.cause());
             sendError(500, response);
@@ -98,5 +121,8 @@ public class ProductVerticle extends AbstractVerticle {
     response.setStatusCode(statusCode).end();
   }
 
+  private String getFilePath (String prodId){
+    return DATA_DIR+prodId+".json";
+  }
 
 }
