@@ -7,6 +7,8 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import io.vertx.core.logging.Logger;
+import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -16,6 +18,8 @@ import java.util.List;
 import java.util.UUID;
 
 public class ProductVerticle extends AbstractVerticle {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProductVerticle.class);
 
   @Override
   public void start() {
@@ -55,6 +59,7 @@ public class ProductVerticle extends AbstractVerticle {
             if(result.succeeded()) {
               response.putHeader("content-type", "application/json").end(product.encodePrettily());
             } else {
+              LOGGER.error("Failed to persist to the data store", result.cause());
               sendError(500, response);
             }
           }
