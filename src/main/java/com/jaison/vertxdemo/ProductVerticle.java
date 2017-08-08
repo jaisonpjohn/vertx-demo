@@ -30,7 +30,9 @@ public class ProductVerticle extends AbstractVerticle {
 
 
     vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+    LOGGER.info("ProductVerticle Deployed");
   }
+  
 
   private void handleAddProduct(RoutingContext routingContext) {
     HttpServerResponse response = routingContext.response();
@@ -71,6 +73,7 @@ public class ProductVerticle extends AbstractVerticle {
           } else if(result.cause().getCause().getClass().equals(NoSuchFileException.class)) {
             sendError(404, response);
           } else {
+            LOGGER.error("Failed to get the Product", result.cause());
             sendError(500, response);
           }
         });
@@ -85,6 +88,7 @@ public class ProductVerticle extends AbstractVerticle {
           if(result.succeeded()) {
             response.putHeader("content-type", "application/json").end(result.result().get(0));
           } else {
+            LOGGER.error("Failed to Look up all products", result.cause());
             sendError(500, response);
           }
         });

@@ -10,7 +10,7 @@ public class Runner {
     Consumer<Vertx> runner = vertx -> {
       try {
         vertx.deployVerticle(ProductVerticle.class.getName(),
-            stringAsyncResult -> System.out.println("ProductVerticle deployment complete"));
+            stringAsyncResult -> System.out.println("ProductVerticle deployment completed"));
       } catch (Throwable t) {
         t.printStackTrace();
       }
