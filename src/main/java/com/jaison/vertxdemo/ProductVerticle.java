@@ -1,8 +1,6 @@
 package com.jaison.vertxdemo;
 
 import io.vertx.core.AbstractVerticle;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.core.json.JsonArray;
@@ -14,7 +12,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 import java.nio.file.NoSuchFileException;
-import java.util.List;
 import java.util.UUID;
 
 public class ProductVerticle extends AbstractVerticle {
@@ -53,15 +50,12 @@ public class ProductVerticle extends AbstractVerticle {
 
     Buffer buffer = Buffer.buffer(product.encodePrettily());
     vertx.fileSystem().writeFile("./data/"+id+".json", buffer,
-        new Handler<AsyncResult<Void>>() {
-          @Override
-          public void handle(AsyncResult<Void> result) {
-            if(result.succeeded()) {
-              response.putHeader("content-type", "application/json").end(product.encodePrettily());
-            } else {
-              LOGGER.error("Failed to persist to the data store", result.cause());
-              sendError(500, response);
-            }
+        result -> {
+          if(result.succeeded()) {
+            response.putHeader("content-type", "application/json").end(product.encodePrettily());
+          } else {
+            LOGGER.error("Failed to persist to the data store", result.cause());
+            sendError(500, response);
           }
         });
   }
@@ -71,16 +65,13 @@ public class ProductVerticle extends AbstractVerticle {
     HttpServerResponse response = routingContext.response();
 
     vertx.fileSystem().readFile("./data/"+productId+".json",
-        new Handler<AsyncResult<Buffer>>() {
-          @Override
-          public void handle(final AsyncResult<Buffer> result) {
-            if(result.succeeded()) {
-              response.putHeader("content-type", "application/json").end(result.result());
-            } else if(result.cause().getCause().getClass().equals(NoSuchFileException.class)) {
-              sendError(404, response);
-            } else {
-              sendError(500, response);
-            }
+        result -> {
+          if(result.succeeded()) {
+            response.putHeader("content-type", "application/json").end(result.result());
+          } else if(result.cause().getCause().getClass().equals(NoSuchFileException.class)) {
+            sendError(404, response);
+          } else {
+            sendError(500, response);
           }
         });
   }
@@ -90,14 +81,11 @@ public class ProductVerticle extends AbstractVerticle {
     HttpServerResponse response = routingContext.response();
 
     vertx.fileSystem().readDir("./data/",
-        new Handler<AsyncResult<List<String>>>() {
-          @Override
-          public void handle(final AsyncResult<List<String>> result) {
-            if(result.succeeded()) {
-              response.putHeader("content-type", "application/json").end(result.result().get(0));
-            } else {
-              sendError(500, response);
-            }
+        result -> {
+          if(result.succeeded()) {
+            response.putHeader("content-type", "application/json").end(result.result().get(0));
+          } else {
+            sendError(500, response);
           }
         });
   }
