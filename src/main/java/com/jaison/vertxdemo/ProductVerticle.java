@@ -1,0 +1,105 @@
+package com.jaison.vertxdemo;
+
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.Router;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+
+import java.nio.file.NoSuchFileException;
+import java.util.List;
+import java.util.UUID;
+
+public class ProductVerticle extends AbstractVerticle {
+
+  @Override
+  public void start() {
+    Router router = Router.router(vertx);
+
+    router.route().handler(BodyHandler.create());
+
+    router.put("/products").handler(this::handleAddProduct);
+    router.get("/products/:productId").handler(this::handleGetProduct);
+    router.get("/products").handler(this::handleListProducts);
+
+
+    vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+  }
+
+  private void handleAddProduct(RoutingContext routingContext) {
+    HttpServerResponse response = routingContext.response();
+    if(routingContext.getBodyAsString().isEmpty()){
+      sendError(400, response);
+      return;
+    }
+    JsonObject product;
+    try {
+      product = routingContext.getBodyAsJson();
+    } catch (Exception e){
+      sendError(400, response);
+      return;
+    }
+    String id = UUID.randomUUID().toString();
+    product.put("id",id);
+
+    Buffer buffer = Buffer.buffer(product.encodePrettily());
+    vertx.fileSystem().writeFile("./data/"+id+".json", buffer,
+        new Handler<AsyncResult<Void>>() {
+          @Override
+          public void handle(AsyncResult<Void> result) {
+            if(result.succeeded()) {
+              response.putHeader("content-type", "application/json").end(product.encodePrettily());
+            } else {
+              sendError(500, response);
+            }
+          }
+        });
+  }
+
+  private void handleGetProduct(RoutingContext routingContext) {
+    String productId = routingContext.request().getParam("productId");
+    HttpServerResponse response = routingContext.response();
+
+    vertx.fileSystem().readFile("./data/"+productId+".json",
+        new Handler<AsyncResult<Buffer>>() {
+          @Override
+          public void handle(final AsyncResult<Buffer> result) {
+            if(result.succeeded()) {
+              response.putHeader("content-type", "application/json").end(result.result());
+            } else if(result.cause().getCause().getClass().equals(NoSuchFileException.class)) {
+              sendError(404, response);
+            } else {
+              sendError(500, response);
+            }
+          }
+        });
+  }
+
+  private void handleListProducts(RoutingContext routingContext) {
+    JsonArray arr = new JsonArray();
+    HttpServerResponse response = routingContext.response();
+
+    vertx.fileSystem().readDir("./data/",
+        new Handler<AsyncResult<List<String>>>() {
+          @Override
+          public void handle(final AsyncResult<List<String>> result) {
+            if(result.succeeded()) {
+              response.putHeader("content-type", "application/json").end(result.result().get(0));
+            } else {
+              sendError(500, response);
+            }
+          }
+        });
+  }
+
+  private void sendError(int statusCode, HttpServerResponse response) {
+    response.setStatusCode(statusCode).end();
+  }
+
+
+}

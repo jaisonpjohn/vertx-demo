@@ -7,17 +7,20 @@ repositories {
   jcenter()
 }
 
-version = '1.0-SNAPSHOT'
+group = 'com.jaison'
+version = '0.0.1'
 sourceCompatibility = '1.8'
 mainClassName = 'io.vertx.core.Launcher'
 
 def vertxVersion = '3.4.2'
-def mainVerticleName = 'io.vertx.starter.MainVerticle'
+def mainVerticleName = 'com.jaison.vertxdemo.ProductVerticle'
 def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
 dependencies {
   compile "io.vertx:vertx-core:$vertxVersion"
+  compile "io.vertx:vertx-web:$vertxVersion"
+
   testCompile "junit:junit:4.12"
   testCompile "io.vertx:vertx-unit:$vertxVersion"
 }
