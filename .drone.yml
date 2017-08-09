@@ -1,0 +1,18 @@
+pipeline:
+
+  build-test-and-vet-on-commits-and-pull-requests:
+    when:
+      event: [push, pull_request]
+    image: library/openjdk:8-jdk
+    commands:
+      - mkdir data
+      - ./gradlew clean test shadowJar
+
+  push-artifact-to-registry-on-master-merge:
+    when:
+      event: push
+      branch: master
+    image: plugins/docker
+    repo: jaisonpjohn/vertx-demo
+    tag:
+      - 'latest'

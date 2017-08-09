@@ -30,3 +30,4 @@ gradle-app.setting
 *.log
 *.class
 /target/
+/data/
