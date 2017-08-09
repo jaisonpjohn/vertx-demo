@@ -1,7 +1,7 @@
 [![Build Status](http://ec2-54-71-127-226.us-west-2.compute.amazonaws.com/api/badges/jaisonpjohn/vertx-demo/status.svg)](http://ec2-54-71-127-226.us-west-2.compute.amazonaws.com/jaisonpjohn/vertx-demo)
 
 # vertx-demo
-This is to demo vertx microservice. This simple microservice has put endpoint to PUT a JSON message in local filesystem and generate an id (UUID) and return, it has a curresponding GET endpoint to expose the same item given the id. 
+This is to demo vertx microservice. This simple microservice has put endpoint to PUT a JSON message in local filesystem and generate an id (UUID) and return. Also it has a curresponding GET endpoint to expose the same item for the given id. 
 
 ---
  
