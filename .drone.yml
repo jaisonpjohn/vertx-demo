@@ -5,7 +5,8 @@ pipeline:
       event: [push, pull_request]
     image: library/openjdk:8-jdk
     commands:
-      - ./gradlew clean test shadowJar
+      - mkdir data
+      - ./gradlew clean shadowJar
 
   push-artifact-to-registry-on-master-merge:
     when:
