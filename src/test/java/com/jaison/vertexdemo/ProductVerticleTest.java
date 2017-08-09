@@ -2,6 +2,7 @@ package com.jaison.vertexdemo;
 
 import com.jaison.vertxdemo.ProductVerticle;
 import io.vertx.core.Vertx;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
 import io.vertx.ext.unit.TestContext;
 import io.vertx.ext.unit.junit.Timeout;
@@ -24,7 +25,6 @@ public class ProductVerticleTest {
   public void setUp(TestContext tc) {
     vertx = Vertx.vertx();
     vertx.deployVerticle(ProductVerticle.class.getName(), tc.asyncAssertSuccess());
-    //vertx.exceptionHandler(tc.exceptionHandler());
   }
 
   @After
@@ -100,6 +100,50 @@ public class ProductVerticleTest {
           resp.bodyHandler(body -> {
             tc.assertNotNull(body.toJsonObject().getString("id"));
             async.complete();
+          });
+        })
+        .putHeader("content-length", String.valueOf(requestBody.length()))
+        .putHeader("content-type", "application/json")
+        .write(requestBody)
+        .end();
+  }
+
+  @Test
+  public void addedProductCanBeSuccessfullyRetrievedUsingGETEndpoint(TestContext tc) {
+    Async async = tc.async();
+    String requestBody = "{\"name\" : \"Egg Whisk\", \"price\" : 3.99, \"weight\" : 150 }";
+    JsonObject expectedGetResponse = new JsonObject(requestBody);
+    vertx.createHttpClient()
+        .put(8080, "localhost", "/products", resp -> {
+          resp.bodyHandler(body -> {
+            String id = body.toJsonObject().getString("id");
+            expectedGetResponse.put("id",id);
+            vertx.createHttpClient().getNow(8080, "localhost", "/products/"+id, response -> {
+              tc.assertEquals(response.statusCode(), 200);
+              response.bodyHandler(getBody -> {
+                tc.assertEquals(expectedGetResponse,body.toJsonObject());
+                async.complete();
+              });
+            });
+          });
+        })
+        .putHeader("content-length", String.valueOf(requestBody.length()))
+        .putHeader("content-type", "application/json")
+        .write(requestBody)
+        .end();
+  }
+
+  @Test
+  public void a404isThrownWhenPassingANonExistentIdForGETEndpoint(TestContext tc) {
+    Async async = tc.async();
+    String requestBody = "{\"name\" : \"Egg Whisk\", \"price\" : 3.99, \"weight\" : 150 }";
+    vertx.createHttpClient()
+        .put(8080, "localhost", "/products", resp -> {
+          resp.bodyHandler(body -> {
+            vertx.createHttpClient().getNow(8080, "localhost", "/products/"+"someId", response -> {
+              tc.assertEquals(response.statusCode(), 404);
+              async.complete();
+            });
           });
         })
         .putHeader("content-length", String.valueOf(requestBody.length()))
