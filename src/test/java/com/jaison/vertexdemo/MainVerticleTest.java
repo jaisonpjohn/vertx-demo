@@ -1,6 +1,6 @@
 package com.jaison.vertexdemo;
 
-import com.jaison.vertxdemo.ProductVerticle;
+import com.jaison.vertxdemo.MainVerticle;
 import io.vertx.core.Vertx;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.unit.Async;
@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 @RunWith(VertxUnitRunner.class)
-public class ProductVerticleTest {
+public class MainVerticleTest {
 
   private Vertx vertx;
 
@@ -24,7 +24,7 @@ public class ProductVerticleTest {
   @Before
   public void setUp(TestContext tc) {
     vertx = Vertx.vertx();
-    vertx.deployVerticle(ProductVerticle.class.getName(), tc.asyncAssertSuccess());
+    vertx.deployVerticle(MainVerticle.class.getName(), tc.asyncAssertSuccess());
   }
 
   @After

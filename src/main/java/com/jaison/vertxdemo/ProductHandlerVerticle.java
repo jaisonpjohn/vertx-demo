@@ -9,36 +9,49 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.healthchecks.HealthCheckHandler;
+import io.vertx.ext.healthchecks.Status;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Singleton;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
-public class ProductVerticle extends AbstractVerticle {
+@Singleton
+public class ProductHandlerVerticle extends AbstractVerticle {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ProductVerticle.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProductHandlerVerticle.class);
 
-  //TODO: move this to config rather than constant
-  private static final String DATA_DIR = "./data/";
+  @Inject
+  @Named("data.dir")
+  private String directory;
 
   @Override
   public void start() {
-    Router router = Router.router(vertx);
+      LOGGER.info("Deploying ProductHandlerVerticle");
+      Router router = Router.router(vertx);
 
-    router.route().handler(BodyHandler.create());
+      router.route().handler(BodyHandler.create());
 
-    router.put("/products").handler(this::handleAddProduct);
-    router.get("/products/:productId").handler(this::handleGetProduct);
-    router.get("/products").handler(this::handleListProducts);
+      router.put("/products").handler(this::handleAddProduct);
+      router.get("/products/:productId").handler(this::handleGetProduct);
+      router.get("/products").handler(this::handleListProducts);
 
+      HealthCheckHandler healthCheckHandler = HealthCheckHandler.create(vertx);
+      healthCheckHandler.register("app-health", future -> {
+        future.complete(Status.OK());
+      });
 
-    vertx.createHttpServer().requestHandler(router::accept).listen(8080);
-    LOGGER.info("ProductVerticle Deployed");
-  }
+      router.get("/health*").handler(healthCheckHandler);
+      vertx.createHttpServer().requestHandler(router::accept).listen(8080);
+      LOGGER.info("ProductHandlerVerticle Deployed");
+    }
 
 
   private void handleAddProduct(RoutingContext routingContext) {
@@ -91,7 +104,7 @@ public class ProductVerticle extends AbstractVerticle {
     HttpServerResponse response = routingContext.response();
 
     // TODO: introduce RxJava and Observable to avoid callbackhell
-    vertx.fileSystem().readDir(DATA_DIR,
+    vertx.fileSystem().readDir(directory,
         result -> {
           if(result.succeeded()) {
             List<Future> futures = new ArrayList<>();
@@ -106,7 +119,8 @@ public class ProductVerticle extends AbstractVerticle {
                 fileFuture.complete();
               });
             });
-            CompositeFuture compositeFuture = CompositeFuture.all(futures).setHandler(fileFutureResult->{
+            CompositeFuture.all(futures).setHandler(
+                fileFutureResult->{
               response.putHeader("content-type", "application/json").end(jsonArray.encodePrettily());
             });
 
@@ -122,7 +136,7 @@ public class ProductVerticle extends AbstractVerticle {
   }
 
   private String getFilePath (String prodId){
-    return DATA_DIR+prodId+".json";
+    return directory+prodId+".json";
   }
 
 }

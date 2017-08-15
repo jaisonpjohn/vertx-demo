@@ -13,15 +13,31 @@ sourceCompatibility = '1.8'
 mainClassName = 'io.vertx.core.Launcher'
 
 def vertxVersion = '3.4.2'
+def vertxPrometheusVersion = '0.0.26'
 def mainVerticleName = 'com.jaison.vertxdemo.ProductVerticle'
 def watchForChange = 'src/**/*'
 def doOnChange = './gradlew classes'
 
 dependencies {
+  compile "com.google.inject:guice:4.0"
   compile "io.vertx:vertx-core:$vertxVersion"
   compile "io.vertx:vertx-web:$vertxVersion"
 
+
+  compile "io.vertx:vertx-health-check:$vertxVersion"
+  compile "io.vertx:vertx-config:$vertxVersion"
+  compile "io.vertx:vertx-config-yaml:$vertxVersion"
+
+
+  compile "io.vertx:vertx-dropwizard-metrics:$vertxVersion"
+  compile "io.prometheus:client:0.0.10"
+  compile "io.prometheus:simpleclient_dropwizard:$vertxPrometheusVersion"
+  compile "io.prometheus:simpleclient_vertx:$vertxPrometheusVersion"
+
+
   compile "ch.qos.logback:logback-classic:1.2.3"
+
+  //compileOnly "io.vertx:vertx-codegen:$vertxVersion"
 
   testCompile "junit:junit:4.12"
   testCompile "io.vertx:vertx-unit:$vertxVersion"
